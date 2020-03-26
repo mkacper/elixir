@@ -249,6 +249,13 @@ defmodule Mix do
   end
 
   @doc """
+  Returns the Mix target.
+  """
+  def target do
+    Mix.State.get(:target, :host)
+  end
+
+  @doc """
   Changes the current Mix environment to `env`.
 
   Be careful when invoking this function as any project
@@ -259,6 +266,13 @@ defmodule Mix do
   """
   def env(env) when is_atom(env) do
     Mix.State.put(:env, env)
+  end
+
+  @doc """
+  Changes the current Mix target to `target`.
+  """
+  def target(target) when is_atom(target) do
+    Mix.State.put(:target, target)
   end
 
   @doc """

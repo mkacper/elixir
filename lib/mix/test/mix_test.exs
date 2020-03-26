@@ -13,6 +13,12 @@ defmodule MixTest do
     assert Mix.env() == :prod
   end
 
+  test "target" do
+    assert Mix.target() == :host
+    Mix.target(:rpi3)
+    assert Mix.target() == :rpi3
+  end
+
   test "debug" do
     refute Mix.debug?()
     Mix.debug(true)

@@ -9,6 +9,52 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  test "returns env build path for default (:host) target" do
+    config = [build_per_environment: true]
+
+    assert Mix.Project.build_path(config) == Path.join(File.cwd!(), "_build/dev")
+  end
+
+  test "returns env build path for custom env" do
+    config = [build_per_environment: true]
+    default_env = Mix.env()
+    custom_env = :custom_env
+
+    Mix.env(custom_env)
+
+    assert Mix.Project.build_path(config) == Path.join(File.cwd!(), "_build/#{custom_env}")
+
+    Mix.env(default_env)
+  end
+
+  test "returns target and env build path for custom target" do
+    config = [build_per_environment: true]
+    default_target = Mix.target()
+    target = :custom_target
+
+    Mix.target(target)
+
+    assert Mix.Project.build_path(config) == Path.join(File.cwd!(), "_build/#{target}-dev")
+
+    Mix.target(default_target)
+  end
+
+  test "returns target and env build path for custom env and target" do
+    config = [build_per_environment: true]
+    default_env = Mix.env()
+    default_target = Mix.target()
+    env = :custom_env
+    target = :custom_target
+
+    Mix.target(target)
+    Mix.env(env)
+
+    assert Mix.Project.build_path(config) == Path.join(File.cwd!(), "_build/#{target}-#{env}")
+
+    Mix.env(default_env)
+    Mix.target(default_target)
+  end
+
   test "returns consolidation path" do
     config = [apps_path: "apps", build_per_environment: true]
 

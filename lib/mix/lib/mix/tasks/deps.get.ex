@@ -20,10 +20,12 @@ defmodule Mix.Tasks.Deps.Get do
     end
 
     Mix.Project.get!()
-    {opts, _, _} = OptionParser.parse(args, switches: [only: :string])
+    {opts, _, _} = OptionParser.parse(args, switches: [only: :string, target: :string])
 
-    # Fetch all deps by default unless --only is given
-    fetch_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
+    # Fetch all deps by default unless --only or --target is given
+    only_opt = if only = opts[:only], do: [env: :"#{only}"], else: []
+    target_opt = if target = opts[:target], do: [target: :"#{target}"], else: []
+    fetch_opts = only_opt ++ target_opt
 
     apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read(), fetch_opts)
 

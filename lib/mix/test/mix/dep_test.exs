@@ -448,6 +448,29 @@ defmodule Mix.DepTest do
     Mix.RemoteConverger.register(nil)
   end
 
+  # Target handling
+
+  test "only extracts deps matching target" do
+    deps = [
+      {:foo, github: "elixir-lang/foo"},
+      {:bar, github: "elixir-lang/bar", target: :other_target}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        deps = Mix.Dep.load_on_environment(target: :other_target)
+        IO.inspect(deps)
+        assert length(deps) == 1
+
+        deps = Mix.Dep.load_on_environment([])
+        assert length(deps) == 2
+
+        assert [dep] = Mix.Dep.load_on_environment(target: :host)
+        assert dep.app == :foo
+      end)
+    end)
+  end
+
   ## Only handling
 
   test "only extracts deps matching environment" do

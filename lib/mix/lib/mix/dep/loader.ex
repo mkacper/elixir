@@ -21,8 +21,10 @@ defmodule Mix.Dep.Loader do
   @doc """
   Partitions loaded dependencies by environment.
   """
-  def partition_by_env(deps, nil), do: {deps, []}
-  def partition_by_env(deps, env), do: Enum.split_with(deps, &(not skip?(&1, env)))
+  def partition_by_env_and_target(deps, []), do: {deps, []}
+
+  def partition_by_env_and_target(deps, opts),
+    do: Enum.split_with(deps, &(not skip?(&1, opts)))
 
   @doc """
   Checks if a dependency must be skipped according to the environment.
@@ -30,10 +32,8 @@ defmodule Mix.Dep.Loader do
   def skip?(_dep, nil), do: false
   def skip?(%Mix.Dep{status: {:divergedonly, _}}, _), do: false
 
-  def skip?(%Mix.Dep{opts: opts}, env) do
-    only = opts[:only]
-    validate_only!(only)
-    only != nil and env not in List.wrap(only)
+  def skip?(%Mix.Dep{opts: opts}, env_opts) do
+    skip_because_only?(opts, env_opts[:env]) or skip_because_target?(opts, env_opts[:target])
   end
 
   def with_system_env(%Mix.Dep{system_env: []}, callback), do: callback.()
@@ -160,6 +160,8 @@ defmodule Mix.Dep.Loader do
       opts
       |> Keyword.put(:dest, dest)
       |> Keyword.put(:build, build)
+      |> Keyword.put_new(:env, :prod)
+      |> Keyword.put_new(:target, :host)
 
     {system_env, opts} = Keyword.pop(opts, :system_env, [])
     {scm, opts} = get_scm(app, opts)
@@ -183,7 +185,7 @@ defmodule Mix.Dep.Loader do
       app: app,
       requirement: req,
       status: scm_status(scm, opts),
-      opts: Keyword.put_new(opts, :env, :prod),
+      opts: opts,
       system_env: system_env
     }
   end
@@ -320,13 +322,22 @@ defmodule Mix.Dep.Loader do
   end
 
   defp validate_only!(only) do
-    for entry <- List.wrap(only), not is_atom(entry) do
+    validate_if_opt_is_atom_or_list_of_atoms!(":only", only)
+  end
+
+  defp validate_target!(target) do
+    validate_if_opt_is_atom_or_list_of_atoms!(":target", target)
+  end
+
+  defp validate_if_opt_is_atom_or_list_of_atoms!(opt_name, opt_value) do
+    for entry <- List.wrap(opt_value), not is_atom(entry) do
       Mix.raise(
-        "Expected :only in dependency to be an atom or a list of atoms, got: #{inspect(only)}"
+        "Expected #{opt_name} in dependency to be an atom or a list of atoms," <>
+          " got: #{inspect(opt_value)}"
       )
     end
 
-    only
+    opt_value
   end
 
   defp mix_children(opts) do
@@ -334,7 +345,7 @@ defmodule Mix.Dep.Loader do
 
     (Mix.Project.config()[:deps] || [])
     |> Enum.map(&to_dep(&1, from))
-    |> partition_by_env(opts[:env])
+    |> partition_by_env_and_target(opts)
     |> elem(0)
   end
 
@@ -412,5 +423,17 @@ defmodule Mix.Dep.Loader do
       {:error, _} ->
         {:noappfile, app_path}
     end
+  end
+
+  defp skip_because_only?(dep_opts, env) do
+    only = dep_opts[:only]
+    validate_only!(only)
+    only != nil and env not in List.wrap(only)
+  end
+
+  defp skip_because_target?(dep_opts, target) do
+    dep_target = dep_opts[:target]
+    validate_target!(dep_target)
+    dep_target != nil and target not in List.wrap(dep_target)
   end
 end

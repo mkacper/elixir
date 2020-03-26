@@ -468,15 +468,23 @@ defmodule Mix.Project do
   """
   @spec build_path(keyword) :: Path.t()
   def build_path(config \\ config()) do
-    System.get_env("MIX_BUILD_PATH") || config[:env_path] || env_path(config)
+    case Mix.target() do
+      :host ->
+        System.get_env("MIX_BUILD_PATH") || config[:env_path] || env_path(config)
+
+      target ->
+        System.get_env("MIX_BUILD_PATH") || env_and_target_path(config, target)
+    end
   end
 
-  defp env_path(config) do
+  defp env_path(config), do: env_and_target_path(config, :host)
+
+  defp env_and_target_path(config, target) do
     build = config[:build_path] || "_build"
 
     case config[:build_per_environment] do
       true ->
-        Path.expand("#{build}/#{Mix.env()}")
+        expand_env_and_target_path(build, Mix.env(), target)
 
       false ->
         Path.expand("#{build}/shared")
@@ -485,6 +493,12 @@ defmodule Mix.Project do
         Mix.raise("The :build_per_environment option should be a boolean, got: #{inspect(other)}")
     end
   end
+
+  defp expand_env_and_target_path(build, env, :host),
+    do: Path.expand("#{build}/#{env}")
+
+  defp expand_env_and_target_path(build, env, target),
+    do: Path.expand("#{build}/#{target}-#{env}")
 
   @doc """
   Returns the path where manifests are stored.

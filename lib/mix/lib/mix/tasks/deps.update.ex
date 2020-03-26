@@ -41,8 +41,10 @@ defmodule Mix.Tasks.Deps.Update do
     Mix.Project.get!()
     {opts, rest, _} = OptionParser.parse(args, switches: [all: :boolean, only: :string])
 
-    # Fetch all deps by default unless --only is given
-    fetch_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
+    # Fetch all deps by default unless --only or --target is given
+    only_opt = if only = opts[:only], do: [env: :"#{only}"], else: []
+    target_opt = if target = opts[:target], do: [target: :"#{target}"], else: []
+    fetch_opts = only_opt ++ target_opt
 
     cond do
       opts[:all] ->
